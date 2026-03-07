@@ -17,3 +17,6 @@ actix-web = "4.13.0"
 utoipa = { version = "4", features = ["actix_extras"] }
 utoipa-swagger-ui = { version = "6", features = ["actix-web"] }
 anyhow = "1.0.102"
+tracing = "0.1.41"
+tracing-subscriber = { version = "0.3.20", features = ["json", "env-filter"] }
+tracing-appender = "0.2.3"

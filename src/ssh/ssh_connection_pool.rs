@@ -18,6 +18,8 @@ pub(crate) mod ssh_connection_pool
     use std::thread::JoinHandle;
     use std::time::Duration;
     use thiserror::Error;
+    use tracing::{info, debug, warn, error, span, Level};
+
 
     type DynError = Box<dyn std::error::Error + Send + Sync + 'static>;
     type Result<T> = std::result::Result<T, DynError>;
@@ -70,9 +72,8 @@ pub(crate) mod ssh_connection_pool
             } else {
                 channel.exec(&command)?;
             }
-            
-            println!("Running command: {}", command);
 
+            debug!("Running command: {}", command);
             let mut result: CommandResult = CommandResult {
                 stdout: String::new(),
                 stderr: String::new(),
