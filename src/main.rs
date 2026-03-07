@@ -10,9 +10,9 @@
 #[path = "api/api.rs"] pub mod api;
 
 
-use std::env;
 use crate::ssh_connection_pool::get_ssh_cmd_runner;
 use crate::ssh_connection_pool::ssh_connection_pool::SshCommandRunner;
+
 // TODO:
 //  - Logging
 //  - REST API
@@ -25,4 +25,3 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>>
     api::run_server(runner, 52525).await?;
     Ok(())
 }
-
