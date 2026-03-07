@@ -6,6 +6,8 @@
     non_snake_case
 )]
 
+use std::env;
+
 mod ssh_pool_impl
 {
     use std::env;
@@ -27,10 +29,6 @@ mod ssh_pool_impl
     type DynError = Box<dyn std::error::Error + Send + Sync + 'static>;
     type Result<T> = std::result::Result<T, DynError>;
 
-    pub struct SshConnection {
-        session: Session,
-    }
-
     pub struct CommandResult
     {
         pub stdout: String,
@@ -38,31 +36,8 @@ mod ssh_pool_impl
         pub exitCode: i32,
     }
 
-    pub struct SshManager
-    {
-        host: String,
-        port: u16,
-        user: String,
-        password: String,
-        private_key: PathBuf,
-    }
-
-    impl SshManager
-    {
-        pub fn new(host: &str,
-                   port: u16,
-                   user: &str,
-                   password: &str,
-                   private_key_path: PathBuf) -> Self
-        {
-            Self {
-                host: host.to_string(),
-                port,
-                user: user.to_string(),
-                password: password.to_string(),
-                private_key: private_key_path
-            }
-        }
+    pub struct SshConnection {
+        session: Session,
     }
 
     impl SshConnection
@@ -122,6 +97,33 @@ mod ssh_pool_impl
         }
     }
 
+    struct SshManager
+    {
+        host: String,
+        port: u16,
+        user: String,
+        password: String,
+        private_key: PathBuf,
+    }
+
+    impl SshManager
+    {
+        fn new(host: &str,
+                   port: u16,
+                   user: &str,
+                   password: &str,
+                   private_key_path: PathBuf) -> Self
+        {
+            Self {
+                host: host.to_string(),
+                port,
+                user: user.to_string(),
+                password: password.to_string(),
+                private_key: private_key_path
+            }
+        }
+    }
+
     #[async_trait]
     impl Manager for SshManager
     {
@@ -130,7 +132,6 @@ mod ssh_pool_impl
 
         async fn create(&self) -> std::result::Result<Self::Type, Self::Error>
         {
-            println!("=====> Creating connection");
             let conn: SshConnection = SshConnection::establishSshConnection(
                 &self.host, self.port, &self.user, &self.password, &self.private_key)?;
             Ok(Mutex::new(conn))
@@ -149,33 +150,57 @@ mod ssh_pool_impl
         }
     }
 
-    async fn run_command(pool: &Pool<SshManager>, cmd: &str, sudo: bool) -> Result<CommandResult>
+    pub struct SshCommandRunner
     {
-        let connection: Object<SshManager> = pool.get().await
-            .map_err(|e| Box::<dyn std::error::Error + Send + Sync>::from(format!("{}", e)))?;
-        let command: String = cmd.to_string();
-        let result: CommandResult = tokio::task::spawn_blocking(move || {
-            let mut conn: MutexGuard<SshConnection> = connection.lock().unwrap();
-            conn.runCommand(&command, sudo)
-        }).await??;
-        Ok(result)
+        pool: Pool<SshManager, Object<SshManager>>
     }
 
-    #[tokio::main]
-    pub async fn execCommand(command: String) -> Result<()>
+    impl SshCommandRunner
     {
-        let manager: SshManager = SshManager::new("127.0.0.1", 22022, "test", "test",
-                                                  env::current_dir().unwrap().join("resources/test_ssh_keys/id_ed25519")
-        );
-        let pool: Pool<SshManager, Object<SshManager>> = Pool::builder(manager).max_size(4).build()?;
+        pub fn new(host: &str,
+                   port: u16,
+                   user: &str,
+                   password: &str,
+                   private_key_path: PathBuf) -> Self
+        {
+            let manager: SshManager = SshManager::new(host, port, user, password,private_key_path);
+            let pool: Pool<SshManager, Object<SshManager>> = Pool::builder(manager)
+                .max_size(4).build().expect("Failed to create pool");
+            Self { pool }
+        }
 
-        let result: CommandResult = run_command(&pool, &command, false).await?;
-        println!("{}", result.stdout.trim());
-        Ok(())
+        async fn runCommand(&self, command: String, sudo: bool) -> Result<CommandResult>
+        {
+            let connection: Object<SshManager> = self.pool.get().await
+                .map_err(|e| Box::<dyn std::error::Error + Send + Sync>::from(format!("{}", e)))?;
+
+            let result: CommandResult = tokio::task::spawn_blocking(move || {
+                let mut conn: MutexGuard<SshConnection> = connection.lock().unwrap();
+                conn.runCommand(&command, sudo)
+            }).await??;
+            Ok(result)
+        }
+
+        #[tokio::main]
+        pub async fn execCommand(&self, cmd: &str, sudo: bool) -> Result<()>
+        {
+            let command: String = cmd.to_string();
+            let result: CommandResult = self.runCommand(command, false).await?;
+            println!("{}", result.stdout.trim());
+            Ok(())
+        }
     }
 }
 
 fn main()
 {
-    let _ = ssh_pool_impl::execCommand("ls -lar".parse().unwrap());
+    let runner: ssh_pool_impl::SshCommandRunner = ssh_pool_impl::SshCommandRunner::new(
+        "127.0.0.1",
+        22022,
+        "test",
+        "test",
+        env::current_dir().unwrap().join("resources/test_ssh_keys/id_ed25519")
+    );
+
+    let output = runner.execCommand("ls -lar", false);
 }

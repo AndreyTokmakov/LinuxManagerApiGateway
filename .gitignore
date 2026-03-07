@@ -21,5 +21,3 @@ Cargo.lock
 .idea/
 
 **/*.log.*
-
-План изучения Rust.txt
