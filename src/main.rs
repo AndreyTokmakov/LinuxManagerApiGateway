@@ -24,7 +24,9 @@ use crate::ssh_connection_pool::ssh_connection_pool::SshCommandRunner;
 //  - Logging
 //  - REST API
 //  - Configuration file
-//     -  Logging level
+//     - Logging level
+//     - Key Path
+//     - User name
 
 // TODO: Features
 //  - Services (list / status / stop / start / disable / enbale)
