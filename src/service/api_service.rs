@@ -1,4 +1,5 @@
 
+use crate::models::*;
 use crate::ssh_connection_pool::ssh_connection_pool::SshCommandRunner;
 
 use actix_web::{get, web, App, HttpResponse, HttpServer, Responder};
@@ -6,52 +7,6 @@ use serde::Serialize;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 use tokio::join;
-
-#[derive(Serialize, utoipa::ToSchema)]
-pub struct SystemInfo {
-    pub hostname: String,
-    pub uptime: String,
-    pub os: String,
-}
-
-#[derive(Serialize, utoipa::ToSchema)]
-pub struct MemoryInfo {
-    pub total: String,
-    pub used: String,
-    pub free: String,
-}
-
-#[derive(Serialize, utoipa::ToSchema)]
-pub struct DiskInfo {
-    pub filesystem: String,
-    pub size: String,
-    pub used: String,
-    pub avail: String,
-    pub mount_point: String,
-}
-
-#[derive(Serialize, utoipa::ToSchema)]
-pub struct ServiceStatus {
-    pub name: String,
-    pub active: bool,
-}
-
-#[derive(Serialize, utoipa::ToSchema)]
-pub struct ProcessInfo {
-    pub pid: u32,
-    pub cpu: String,
-    pub mem: String,
-    pub command: String,
-}
-
-#[derive(Serialize, utoipa::ToSchema)]
-pub struct NetworkInterface {
-    pub name: String,
-    pub address: String,
-}
-
-// === HANDLERS ===
-// Note: runner передаётся через web::Data<SshCommandRunner>
 
 #[utoipa::path(
     get,
@@ -140,7 +95,8 @@ pub async fn disk_info(runner: web::Data<SshCommandRunner>) -> impl Responder {
     responses((status = 200, description = "Service status", body = Vec<ServiceStatus>))
 )]
 #[get("/services")]
-pub async fn services_status(runner: web::Data<SshCommandRunner>) -> impl Responder {
+pub async fn services_status(runner: web::Data<SshCommandRunner>) -> impl Responder
+{
     let output = runner.execCommand(
         "systemctl list-units --type=service --no-pager --no-legend",
         false
@@ -168,7 +124,8 @@ pub async fn services_status(runner: web::Data<SshCommandRunner>) -> impl Respon
     responses((status = 200, description = "Processes", body = Vec<ProcessInfo>))
 )]
 #[get("/processes")]
-pub async fn processes(runner: web::Data<SshCommandRunner>) -> impl Responder {
+pub async fn processes(runner: web::Data<SshCommandRunner>) -> impl Responder
+{
     let output = runner.execCommand("ps -eo pid,pcpu,pmem,cmd --no-headers", false)
         .await
         .map(|r| r.stdout)
@@ -196,7 +153,8 @@ pub async fn processes(runner: web::Data<SshCommandRunner>) -> impl Responder {
     responses((status = 200, description = "Network interfaces", body = Vec<NetworkInterface>))
 )]
 #[get("/network/interfaces")]
-pub async fn interfaces(runner: web::Data<SshCommandRunner>) -> impl Responder {
+pub async fn interfaces(runner: web::Data<SshCommandRunner>) -> impl Responder
+{
     let output = runner.execCommand("ip -o -4 addr show", false)
         .await
         .map(|r| r.stdout)
@@ -216,7 +174,6 @@ pub async fn interfaces(runner: web::Data<SshCommandRunner>) -> impl Responder {
     HttpResponse::Ok().json(list)
 }
 
-// === OpenAPI ===
 #[derive(OpenApi)]
 #[openapi(
     paths(
