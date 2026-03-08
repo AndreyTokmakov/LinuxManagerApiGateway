@@ -14,7 +14,7 @@ use clap::{Arg, Command, builder::PathBufValueParser, ArgMatches};
 use crate::config::{ApiGetawayConfig, Config, HostConfig};
 
 #[path = "ssh/ssh_connection_pool.rs"] pub mod ssh_connection_pool;
-#[path = "api/api.rs"] pub mod api;
+#[path = "service/api_service.rs"] pub mod api_service;
 #[path = "config/config.rs"] pub mod config;
 
 use crate::ssh_connection_pool::get_ssh_cmd_runner;
@@ -68,10 +68,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>>
         &hostConfig.password,
         env::current_dir()?.join(&hostConfig.private_key_path)
     );
-    api::run_server(&apiGateway.host, apiGateway.port, runner).await?;
+    api_service::run_server(&apiGateway.host, apiGateway.port, runner).await?;
 
     Ok(())
 }
 
-// NOTE: How to run:
-//   target/debug/LinuxManagerApiGateway  -f resources/config.toml
+// NOTE:
+//   Run    : target/debug/LinuxManagerApiGateway  -f resources/config.toml
+//   Swagger: http://0.0.0.0:52525/swagger-ui/
+
