@@ -8,14 +8,16 @@ use anyhow::Result;
 use tokio::join;
 
 #[derive(Serialize, utoipa::ToSchema)]
-struct SystemInfo {
+struct SystemInfo
+{
     hostname: String,
     uptime: String,
     os: String,
 }
 
 #[derive(Serialize, utoipa::ToSchema)]
-struct DiskInfo {
+struct DiskInfo
+{
     filesystem: String,
     size: String,
     used: String,
@@ -24,18 +26,16 @@ struct DiskInfo {
 }
 
 #[derive(Serialize, utoipa::ToSchema)]
-struct ServiceStatus {
+struct ServiceStatus
+{
     name: String,
     active: bool,
 }
 
-/// REST ручка для информации о системе
 #[utoipa::path(
     get,
     path = "/system",
-    responses(
-        (status = 200, description = "System information", body = SystemInfo)
-    )
+    responses((status = 200, description = "System information", body = SystemInfo))
 )]
 #[get("/system")]
 async fn system_info(runner: web::Data<SshCommandRunner>) -> impl Responder {
@@ -53,16 +53,14 @@ async fn system_info(runner: web::Data<SshCommandRunner>) -> impl Responder {
     HttpResponse::Ok().json(SystemInfo { hostname, uptime, os })
 }
 
-/// REST ручка для информации о дисках
 #[utoipa::path(
     get,
     path = "/disk",
-    responses(
-        (status = 200, description = "Disk usage info", body = Vec<DiskInfo>)
-    )
+    responses((status = 200, description = "Disk usage info", body = Vec<DiskInfo>))
 )]
 #[get("/disk")]
-async fn disk_info(runner: web::Data<SshCommandRunner>) -> impl Responder {
+async fn disk_info(runner: web::Data<SshCommandRunner>) -> impl Responder
+{
     let output = runner.execCommand("df -h --output=source,size,used,avail,target -x tmpfs -x devtmpfs", false)
         .await
         .map(|r| r.stdout)
@@ -85,13 +83,11 @@ async fn disk_info(runner: web::Data<SshCommandRunner>) -> impl Responder {
     HttpResponse::Ok().json(disks)
 }
 
-/// REST ручка для информации о сервисах
+
 #[utoipa::path(
     get,
     path = "/services",
-    responses(
-        (status = 200, description = "List of services", body = Vec<ServiceStatus>)
-    )
+    responses((status = 200, description = "List of services", body = Vec<ServiceStatus>))
 )]
 #[get("/services")]
 async fn services_status(runner: web::Data<SshCommandRunner>) -> impl Responder {

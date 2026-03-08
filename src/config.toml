@@ -1,0 +1,9 @@
+[server]
+host = "0.0.0.0"
+port = 52525
+
+[connector]
+pool_size = 4
+
+[logging]
+level = "info"
