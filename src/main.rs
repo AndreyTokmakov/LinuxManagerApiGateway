@@ -17,6 +17,7 @@ use crate::config::{ApiGetawayConfig, Config, HostConfig};
 #[path = "service/api_service.rs"] pub mod api_service;
 #[path = "config/config.rs"] pub mod config;
 mod models;
+mod handlers;
 
 use crate::ssh_connection_pool::get_ssh_cmd_runner;
 use crate::ssh_connection_pool::ssh_connection_pool::SshCommandRunner;
