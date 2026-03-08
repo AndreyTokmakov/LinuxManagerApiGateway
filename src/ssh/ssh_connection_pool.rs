@@ -1,4 +1,5 @@
 use std::env;
+use std::path::PathBuf;
 use crate::ssh_connection_pool::ssh_connection_pool::{CommandResult, SshCommandRunner};
 
 pub(crate) mod ssh_connection_pool
@@ -186,20 +187,22 @@ pub(crate) mod ssh_connection_pool
     }
 }
 
-pub fn get_ssh_cmd_runner() -> SshCommandRunner
+pub fn get_ssh_cmd_runner(host: &str,
+                          ssh_port: u16,
+                          username: &str,
+                          password: &str,
+                          private_key_path: PathBuf) -> SshCommandRunner
 {
-    SshCommandRunner::new(
-        "127.0.0.1",
-        22022,
-        "test",
-        "test",
-        env::current_dir().unwrap().join("resources/test_ssh_keys/id_ed25519")
-    )
+    SshCommandRunner::new(host, ssh_port, username, password, private_key_path)
 }
 
 pub async fn test_all() -> Result<(), Box<dyn std::error::Error + Send + Sync>>
 {
-    let runner: SshCommandRunner = get_ssh_cmd_runner();
+    let runner: SshCommandRunner = get_ssh_cmd_runner("127.0.0.1",
+                                                      22022,
+                                                      "test",
+                                                      "test",
+                                                      env::current_dir().unwrap().join("resources/test_ssh_keys/id_ed25519"));
     let output: CommandResult = runner.execCommand("ls -lar", false).await?;
     println!("{}", output.stdout);
     Ok(())

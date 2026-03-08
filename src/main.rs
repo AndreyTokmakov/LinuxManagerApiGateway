@@ -11,11 +11,11 @@ use std::env;
 use std::path::PathBuf;
 use std::str::FromStr;
 use clap::{Arg, Command, builder::PathBufValueParser, ArgMatches};
-use crate::config::Config;
+use crate::config::{ApiGetawayConfig, Config, HostConfig};
 
 #[path = "ssh/ssh_connection_pool.rs"] pub mod ssh_connection_pool;
 #[path = "api/api.rs"] pub mod api;
-mod config;
+#[path = "config/config.rs"] pub mod config;
 
 use crate::ssh_connection_pool::get_ssh_cmd_runner;
 use crate::ssh_connection_pool::ssh_connection_pool::SshCommandRunner;
@@ -32,12 +32,8 @@ use crate::ssh_connection_pool::ssh_connection_pool::SshCommandRunner;
 //  - Services (list / status / stop / start / disable / enbale)
 //  - Network: (interfaces, Rx/Tx, Open ports)
 
-// TODO: Features (App spesific)
+// TODO: Features (App specific)
 //  - Send ZMQ command
-
-
-// NOTE:
-//   How to run: "target/debug/LinuxManagerApiGateway  -f src/config.toml"
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>>
@@ -56,14 +52,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>>
     let cfgFile: &PathBuf = matches.get_one("config_file").unwrap_or(&defaultConfigFile);
 
     let cfg: Config = config::loadConfig(cfgFile).unwrap();
+
+    let apiGateway: ApiGetawayConfig = cfg.api_gateway;
+    let hostConfig: HostConfig = cfg.host_config;
     let logLevel: Level = Level::from_str(&cfg.logging.level)?;
 
     tracing_subscriber::fmt()
         .with_max_level(logLevel)
         .init();
 
-    let runner: SshCommandRunner = get_ssh_cmd_runner();
-    api::run_server(runner, 52525).await?;
+    let runner: SshCommandRunner = get_ssh_cmd_runner(
+        &hostConfig.host,
+        hostConfig.ssh_port,
+        &hostConfig.username,
+        &hostConfig.password,
+        env::current_dir()?.join(&hostConfig.private_key_path)
+    );
+    api::run_server(&apiGateway.host, apiGateway.port, runner).await?;
 
     Ok(())
 }
+
+// NOTE: How to run:
+//   target/debug/LinuxManagerApiGateway  -f resources/config.toml

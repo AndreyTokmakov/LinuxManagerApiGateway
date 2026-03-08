@@ -118,11 +118,12 @@ async fn services_status(runner: web::Data<SshCommandRunner>) -> impl Responder 
 )]
 struct ApiDoc;
 
-/// Функция запуска сервера, runner передаётся извне
-pub async fn run_server(runner: SshCommandRunner, port: u16) -> std::io::Result<()>
+pub async fn run_server(host: &str,
+                        port: u16,
+                        runner: SshCommandRunner, ) -> std::io::Result<()>
 {
     let runner_data = web::Data::new(runner);
-    println!("Starting server on http://127.0.0.1:{}", port);
+    println!("Starting server on http://{}:{}", &host, port);
 
     HttpServer::new(move || { App::new()
         .app_data(runner_data.clone())
@@ -131,7 +132,7 @@ pub async fn run_server(runner: SshCommandRunner, port: u16) -> std::io::Result<
         .service(services_status)
         .service(
         SwaggerUi::new("/swagger-ui/{_:.*}").url("/api-doc/openapi.json", ApiDoc::openapi()), )
-    }).bind(("127.0.0.1", port))?.run().await
+    }).bind((host, port))?.run().await
 }
 
 // http://0.0.0.0:52525/swagger-ui/
