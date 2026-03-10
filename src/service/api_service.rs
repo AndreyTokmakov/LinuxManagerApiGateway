@@ -10,6 +10,7 @@ use crate::ssh_connection_pool::ssh_connection_pool::SshCommandRunner;
 #[derive(OpenApi)]
 #[openapi(
     paths(
+        exec_command,
         system_info,
         memory_info,
         disk_info,
@@ -24,7 +25,9 @@ use crate::ssh_connection_pool::ssh_connection_pool::SshCommandRunner;
             DiskInfo,
             ServiceStatus,
             ProcessInfo,
-            NetworkInterface
+            NetworkInterface,
+            CommandRequest,
+            CommandResponse
         )
     )
 )]
@@ -38,6 +41,7 @@ pub async fn run_server(host: &str, port: u16, runner: SshCommandRunner) -> std:
     HttpServer::new(move || {
         App::new()
             .app_data(runner_data.clone())
+            .service(exec_command)
             .service(system_info)
             .service(memory_info)
             .service(disk_info)
