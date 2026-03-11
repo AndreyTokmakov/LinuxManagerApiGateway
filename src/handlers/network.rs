@@ -9,12 +9,10 @@ use crate::ssh_connection_pool::ssh_connection_pool::SshCommandRunner;
 )]
 #[get("/network/interfaces")]
 pub async fn interfaces(runner: web::Data<SshCommandRunner>) -> impl Responder {
-    let output = runner.execCommand("ip -o -4 addr show", false)
-        .await
-        .map(|r| r.stdout)
-        .unwrap_or_default();
+    let output: String = runner.execCommand("ip -o -4 addr show", false)
+        .await.map(|r| r.stdout).unwrap_or_default();
 
-    let mut list = Vec::new();
+    let mut list: Vec<NetworkInterface> = Vec::new();
     for line in output.lines() {
         let parts: Vec<&str> = line.split_whitespace().collect();
         if parts.len() >= 4 {

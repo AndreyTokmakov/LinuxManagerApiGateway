@@ -9,12 +9,10 @@ use crate::ssh_connection_pool::ssh_connection_pool::SshCommandRunner;
 )]
 #[get("/processes")]
 pub async fn processes(runner: web::Data<SshCommandRunner>) -> impl Responder {
-    let output = runner.execCommand("ps -eo pid,pcpu,pmem,cmd --no-headers", false)
-        .await
-        .map(|r| r.stdout)
-        .unwrap_or_default();
+    let output: String = runner.execCommand("ps -eo pid,pcpu,pmem,cmd --no-headers", false)
+        .await.map(|r| r.stdout).unwrap_or_default();
 
-    let mut list = Vec::new();
+    let mut list: Vec<ProcessInfo> = Vec::new();
     for line in output.lines() {
         let parts: Vec<&str> = line.split_whitespace().collect();
         if parts.len() >= 4 {

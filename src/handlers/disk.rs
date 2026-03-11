@@ -8,15 +8,13 @@ use crate::ssh_connection_pool::ssh_connection_pool::SshCommandRunner;
     responses((status = 200, description = "Disk info", body = Vec<DiskInfo>))
 )]
 #[get("/disk")]
-pub async fn disk_info(runner: web::Data<SshCommandRunner>) -> impl Responder {
-    let output = runner.execCommand(
-        "df -h --output=source,size,used,avail,target -x tmpfs -x devtmpfs",
-        false
-    ).await
-        .map(|r| r.stdout)
-        .unwrap_or_default();
+pub async fn disk_info(runner: web::Data<SshCommandRunner>) -> impl Responder
+{
+    let output: String = runner.execCommand(
+        "df -h --output=source,size,used,avail,target -x tmpfs -x devtmpfs", false
+    ).await.map(|r| r.stdout).unwrap_or_default();
 
-    let mut disks = Vec::new();
+    let mut disks: Vec<DiskInfo> = Vec::new();
     for line in output.lines().skip(1) {
         let parts: Vec<&str> = line.split_whitespace().collect();
         if parts.len() == 5 {
