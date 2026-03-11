@@ -7,10 +7,3 @@ pub struct SystemInfo {
     pub uptime: String,
     pub os: String,
 }
-
-#[derive(Serialize, ToSchema)]
-pub struct MemoryInfo {
-    pub total: String,
-    pub used: String,
-    pub free: String,
-}
