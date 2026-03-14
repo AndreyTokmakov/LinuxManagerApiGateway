@@ -8,7 +8,8 @@ use crate::ssh_connection_pool::ssh_connection_pool::SshCommandRunner;
     responses((status = 200, description = "Service status", body = Vec<ServiceStatus>))
 )]
 #[get("/services")]
-pub async fn services_status(runner: web::Data<SshCommandRunner>) -> impl Responder {
+pub async fn services_status(runner: web::Data<SshCommandRunner>) -> impl Responder
+{
     let output: String = runner.execCommand(
         "systemctl list-units --type=service --no-pager --no-legend", false
     ).await.map(|r| r.stdout).unwrap_or_default();
