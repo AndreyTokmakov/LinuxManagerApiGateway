@@ -181,7 +181,7 @@ pub(crate) mod ssh_connection_pool
         pub async fn execCommand(&self, cmd: &str, sudo: bool)-> Result<CommandResult>
         {
             let command: String = cmd.to_string();
-            let result: CommandResult = self.runCommand(command, false).await?;
+            let result: CommandResult = self.runCommand(command, sudo).await?;
             Ok(result)
         }
     }
