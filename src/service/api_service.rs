@@ -17,7 +17,9 @@ use crate::ssh_connection_pool::ssh_connection_pool::SshCommandRunner;
         services_status,
         process_list,
         interfaces,
-        journal_logs
+        journal_logs,
+        journal_errors,
+        journal_service,
     ),
     components(
         schemas(
@@ -51,6 +53,8 @@ pub async fn run_server(host: &str, port: u16, runner: SshCommandRunner) -> std:
             .service(process_list)
             .service(interfaces)
             .service(journal_logs)
+            .service(journal_errors)
+            .service(journal_service)
             .service(
                 SwaggerUi::new("/swagger-ui/{_:.*}")
                     .url("/api-doc/openapi.json", ApiDoc::openapi())
