@@ -15,7 +15,7 @@ use crate::ssh_connection_pool::ssh_connection_pool::SshCommandRunner;
         memory_info,
         disk_info,
         services_status,
-        processes,
+        process_list,
         interfaces
     ),
     components(
@@ -46,7 +46,7 @@ pub async fn run_server(host: &str, port: u16, runner: SshCommandRunner) -> std:
             .service(memory_info)
             .service(disk_info)
             .service(services_status)
-            .service(processes)
+            .service(process_list)
             .service(interfaces)
             .service(
                 SwaggerUi::new("/swagger-ui/{_:.*}")

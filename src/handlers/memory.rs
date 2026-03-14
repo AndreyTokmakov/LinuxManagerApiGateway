@@ -1,65 +1,51 @@
 use actix_web::{get, web, HttpResponse, Responder};
+use std::collections::HashMap;
 
-use crate::models::*;
+use crate::models::MemoryInfo;
 use crate::ssh_connection_pool::ssh_connection_pool::SshCommandRunner;
 
 #[utoipa::path(
     get,
     path = "/memory",
-    responses((status = 200, description = "Memory info", body = MemoryInfo))
+    responses(
+        (status = 200, description = "Memory information", body = MemoryInfo)
+    )
 )]
 #[get("/memory")]
-pub async fn memory_info(
-    runner: web::Data<SshCommandRunner>
-) -> impl Responder
+pub async fn memory_info(runner: web::Data<SshCommandRunner>) -> impl Responder
 {
     let output: String = runner.execCommand(
-        "free -h", false
+        "cat /proc/meminfo", false
     ).await.map(|r| r.stdout).unwrap_or_default();
 
-    let mut total = String::new();
-    let mut used = String::new();
-    let mut free = String::new();
-    let mut available = String::new();
-
-    let mut swap_total = String::new();
-    let mut swap_used = String::new();
-    let mut swap_free = String::new();
-
+    let mut map: HashMap<String, u64> = HashMap::new();
     for line in output.lines()
     {
-        if line.starts_with("Mem:")
+        let parts: Vec<&str> = line.split_whitespace().collect();
+        if parts.len() >= 2
         {
-            let parts: Vec<&str> = line.split_whitespace().collect();
-            if parts.len() >= 7
-            {
-                total = parts[1].to_string();
-                used = parts[2].to_string();
-                free = parts[3].to_string();
-                available = parts[6].to_string();
-            }
-        }
-        if line.starts_with("Swap:")
-        {
-            let parts: Vec<&str> = line.split_whitespace().collect();
-            if parts.len() >= 4
-            {
-                swap_total = parts[1].to_string();
-                swap_used = parts[2].to_string();
-                swap_free = parts[3].to_string();
+            let key = parts[0].trim_end_matches(':').to_string();
+            if let Ok(value) = parts[1].parse::<u64>() {
+                map.insert(key, value);
             }
         }
     }
 
-    HttpResponse::Ok().json(
-        MemoryInfo {
-            total,
-            used,
-            free,
-            available,
-            swap_total,
-            swap_used,
-            swap_free
-        }
-    )
+    let info = MemoryInfo
+    {
+        mem_total: *map.get("MemTotal").unwrap_or(&0),
+        mem_free: *map.get("MemFree").unwrap_or(&0),
+        mem_available: *map.get("MemAvailable").unwrap_or(&0),
+        buffers: *map.get("Buffers").unwrap_or(&0),
+        cached: *map.get("Cached").unwrap_or(&0),
+        active: *map.get("Active").unwrap_or(&0),
+        inactive: *map.get("Inactive").unwrap_or(&0),
+        swap_total: *map.get("SwapTotal").unwrap_or(&0),
+        swap_free: *map.get("SwapFree").unwrap_or(&0),
+        slab: *map.get("Slab").unwrap_or(&0),
+        dirty: *map.get("Dirty").unwrap_or(&0),
+        anon_pages: *map.get("AnonPages").unwrap_or(&0),
+    };
+
+    HttpResponse::Ok().json(info)
 }
