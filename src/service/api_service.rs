@@ -21,6 +21,7 @@ use crate::ssh_connection_pool::ssh_connection_pool::SshCommandRunner;
         service_logs,
         process_list,
         interfaces,
+        open_ports,
         journal_logs,
         journal_errors,
         journal_service,
@@ -34,6 +35,7 @@ use crate::ssh_connection_pool::ssh_connection_pool::SshCommandRunner;
             ServiceAction,
             ProcessInfo,
             NetworkInterface,
+            OpenPort,
             CommandRequest,
             CommandResponse,
             JournalEntry
@@ -59,6 +61,7 @@ pub async fn run_server(host: &str, port: u16, runner: SshCommandRunner) -> std:
         .service(service_logs)
         .service(process_list)
         .service(interfaces)
+        .service(open_ports)
         .service(journal_logs)
         .service(journal_errors)
         .service(journal_service)

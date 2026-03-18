@@ -93,24 +93,19 @@ pub async fn services_status(runner: web::Data<SshCommandRunner>) -> impl Respon
     )
 )]
 #[get("/services/{name}")]
-pub async fn service_details(
-    runner: web::Data<SshCommandRunner>,
-    path: web::Path<String>,
-) -> impl Responder {
+pub async fn service_details(runner: web::Data<SshCommandRunner>,
+                             path: web::Path<String>) -> impl Responder
+{
 
-    let service = path.into_inner();
-
-    let cmd = format!(
+    let service: String = path.into_inner();
+    let cmd: String = format!(
         "systemctl show {} \
-        --property=Description,LoadState,ActiveState,SubState,Type,\
-ExecMainPID,MemoryCurrent,NRestarts,ExecStart,ExecStop",
+        --property=Description,LoadState,ActiveState,SubState,Type,ExecMainPID,MemoryCurrent,NRestarts,ExecStart,ExecStop",
         service
     );
 
-    let output = runner.execCommand(&cmd, false)
-        .await
-        .map(|r| r.stdout)
-        .unwrap_or_default();
+    let output: String = runner.execCommand(&cmd, false)
+        .await.map(|r| r.stdout).unwrap_or_default();
 
     let mut description = String::new();
     let mut load_state = String::new();
@@ -123,8 +118,8 @@ ExecMainPID,MemoryCurrent,NRestarts,ExecStart,ExecStop",
     let mut exec_start = None;
     let mut exec_stop = None;
 
-    for line in output.lines() {
-
+    for line in output.lines()
+    {
         if let Some(v) = line.strip_prefix("Description=") {
             description = v.to_string();
         }

@@ -13,3 +13,11 @@ pub struct NetworkInterface {
     pub speed: Option<String>,
     pub driver: Option<String>,
 }
+
+#[derive(Serialize, ToSchema)]
+pub struct OpenPort {
+    pub protocol: String,
+    pub local_address: String,
+    pub port: u16,
+    pub state: String,
+}
