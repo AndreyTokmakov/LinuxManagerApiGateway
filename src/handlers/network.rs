@@ -1,4 +1,5 @@
 use actix_web::{get, web, HttpResponse, Responder};
+use clap::builder::Str;
 use crate::models::*;
 use crate::ssh_connection_pool::ssh_connection_pool::SshCommandRunner;
 
@@ -108,6 +109,49 @@ pub async fn open_ports(runner: web::Data<SshCommandRunner>) -> impl Responder
     HttpResponse::Ok().json(ports)
 }
 
+#[utoipa::path(
+    get,
+    path = "/network/routes",
+    responses((status = 200, description = "Network routes", body = Vec<NetworkRoute>))
+)]
+#[get("/network/routes")]
+pub async fn routes(runner: web::Data<SshCommandRunner>) -> impl Responder
+{
+    let cmd: &str = "ip route show";
+    let output: String = runner.execCommand(cmd, false)
+        .await.map(|r| r.stdout).unwrap_or_default();
+
+    let routes: Vec<NetworkRoute> = output.lines()
+        .filter_map(|line| {
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            if parts.is_empty() {
+                return None;
+            }
+
+            let destination: &str = if parts[0] == "default" { "0.0.0.0" } else { parts[0] };
+            let mask: &str = "0.0.0.0";
+
+            let find_next = |key: &str| {
+                parts.iter()
+                    .position(|&p| p == key)
+                    .and_then(|idx| parts.get(idx + 1))
+                    .map(|s| s.to_string())
+                    .unwrap_or_default()
+            };
+
+            let gateway: String = find_next("via");
+            let interface: String = find_next("dev");
+
+            Some(NetworkRoute {
+                interface,
+                destination: destination.to_string(),
+                gateway,
+                mask: mask.to_string(),
+            })
+        }).collect();
+
+    HttpResponse::Ok().json(routes)
+}
 
 fn decode_ipv4(hex: &str) -> Option<String>
 {

@@ -2,7 +2,8 @@ use serde::Serialize;
 use utoipa::ToSchema;
 
 #[derive(Serialize, ToSchema)]
-pub struct NetworkInterface {
+pub struct NetworkInterface
+{
     pub name: String,
     pub mac_address: String,
     pub state: String,
@@ -15,9 +16,19 @@ pub struct NetworkInterface {
 }
 
 #[derive(Serialize, ToSchema)]
-pub struct OpenPort {
+pub struct OpenPort
+{
     pub protocol: String,
     pub local_address: String,
     pub port: u16,
     pub state: String,
+}
+
+#[derive(Serialize, ToSchema)]
+pub struct NetworkRoute
+{
+    pub interface: String,
+    pub destination: String,
+    pub gateway: String,
+    pub mask: String,
 }
