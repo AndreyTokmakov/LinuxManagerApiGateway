@@ -1,3 +1,4 @@
+use std::net::Ipv4Addr;
 use actix_web::{get, web, HttpResponse, Responder};
 use clap::builder::Str;
 use crate::models::*;
@@ -117,40 +118,43 @@ pub async fn open_ports(runner: web::Data<SshCommandRunner>) -> impl Responder
 #[get("/network/routes")]
 pub async fn routes(runner: web::Data<SshCommandRunner>) -> impl Responder
 {
-    let cmd: &str = "ip route show";
+    let cmd: &str = "cat /proc/net/route";
     let output: String = runner.execCommand(cmd, false)
-        .await.map(|r| r.stdout).unwrap_or_default();
+        .await
+        .map(|r| r.stdout)
+        .unwrap_or_default();
 
     let routes: Vec<NetworkRoute> = output.lines()
-        .filter_map(|line| {
-            let parts: Vec<&str> = line.split_whitespace().collect();
-            if parts.is_empty() {
-                return None;
-            }
+        .skip(1) // пропускаем header
+        .filter_map(|line|
+            {
+                let parts: Vec<&str> = line.split_whitespace().collect();
+                if parts.len() < 8 {
+                    return None;
+                }
 
-            let destination: &str = if parts[0] == "default" { "0.0.0.0" } else { parts[0] };
-            let mask: &str = "0.0.0.0";
+                let interface: String = parts[0].to_string();
+                let destination: String = hex_to_ipv4(parts[1]);
+                let gateway: String = hex_to_ipv4(parts[2]);
+                let mask: String = hex_to_ipv4(parts[7]);
 
-            let find_next = |key: &str| {
-                parts.iter()
-                    .position(|&p| p == key)
-                    .and_then(|idx| parts.get(idx + 1))
-                    .map(|s| s.to_string())
-                    .unwrap_or_default()
-            };
-
-            let gateway: String = find_next("via");
-            let interface: String = find_next("dev");
-
-            Some(NetworkRoute {
-                interface,
-                destination: destination.to_string(),
-                gateway,
-                mask: mask.to_string(),
+                Some(NetworkRoute {
+                    interface,
+                    destination,
+                    gateway,
+                    mask,
+                })
             })
-        }).collect();
+        .collect();
 
     HttpResponse::Ok().json(routes)
+}
+
+fn hex_to_ipv4(hex: &str) -> String
+{
+    u32::from_str_radix(hex, 16).ok()
+        .map(|v| Ipv4Addr::from(u32::from_le(v)).to_string())
+        .unwrap_or_default()
 }
 
 fn decode_ipv4(hex: &str) -> Option<String>
