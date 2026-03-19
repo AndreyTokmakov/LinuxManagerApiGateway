@@ -120,32 +120,28 @@ pub async fn routes(runner: web::Data<SshCommandRunner>) -> impl Responder
 {
     let cmd: &str = "cat /proc/net/route";
     let output: String = runner.execCommand(cmd, false)
-        .await
-        .map(|r| r.stdout)
-        .unwrap_or_default();
+        .await.map(|r| r.stdout).unwrap_or_default();
 
-    let routes: Vec<NetworkRoute> = output.lines()
-        .skip(1) // пропускаем header
-        .filter_map(|line|
-            {
-                let parts: Vec<&str> = line.split_whitespace().collect();
-                if parts.len() < 8 {
-                    return None;
-                }
+    // Skip Header
+    let routes: Vec<NetworkRoute> = output.lines().skip(1).filter_map(|line|
+    {
+        let parts: Vec<&str> = line.split_whitespace().collect();
+        if parts.len() < 8 {
+            return None;
+        }
 
-                let interface: String = parts[0].to_string();
-                let destination: String = hex_to_ipv4(parts[1]);
-                let gateway: String = hex_to_ipv4(parts[2]);
-                let mask: String = hex_to_ipv4(parts[7]);
+        let interface: String = parts[0].to_string();
+        let destination: String = hex_to_ipv4(parts[1]);
+        let gateway: String = hex_to_ipv4(parts[2]);
+        let mask: String = hex_to_ipv4(parts[7]);
 
-                Some(NetworkRoute {
-                    interface,
-                    destination,
-                    gateway,
-                    mask,
-                })
-            })
-        .collect();
+        Some(NetworkRoute {
+            interface,
+            destination,
+            gateway,
+            mask,
+        })
+    }).collect();
 
     HttpResponse::Ok().json(routes)
 }
